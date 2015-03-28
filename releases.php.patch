@@ -1,0 +1,74 @@
+--- releases.php	2015-03-28 15:15:40.568113992 +0100
++++ releases-new.php	2015-03-28 15:24:19.048155099 +0100
+@@ -1679,8 +1679,21 @@
+                         if ($newtitle == "no feed")
+                         {
+                             $newtitle = $row["relname"];
++			}
++
++                        // Try nzedb request URL: http://reqid.nzedb.com/index.php?reqid=[REQID]&group=[GROUP]
++			if ($newtitle == "")
++			{
++				$newtitle = $this->getReleaseNameForReqId2("http://reqid.nzedb.com/index.php?reqid=[REQID]&group=[GROUP]", $binGroup["name"], $row["reqID"]);
++
++				// Enable if you want display of releases found by alternative method
++				//if ($newtitle != "")
++				//{
++				//   echo "Found REQID using alternative method: $newtitle\n";
++				//}
+                         }
+ 
++
+                         //
+                         // Valid release with right number of files and title now, so move it on
+                         //
+@@ -1976,6 +1989,42 @@
+ 		return "";		
+ 	}
+ 
++	public function getReleaseNameForReqId2($url, $groupname, $reqid)
++	{
++		if ($reqid == " null " || $reqid == "0" || $reqid == "")
++		{
++			return "";
++		}
++
++		$url = str_ireplace("[GROUP]", urlencode($groupname), $url);
++		$url = str_ireplace("[REQID]", urlencode($reqid), $url);
++
++		$xml = getUrl($url);
++
++		if ($xml === false)
++		{
++			return "";
++		}
++		else
++		{
++			if ($xml != "")
++			{
++				$xmlObj = @simplexml_load_string($xml);
++				$arrXml = objectsIntoArray($xmlObj);
++
++				if (isset($arrXml["request"]) && is_array($arrXml["request"]))
++				{
++					foreach ($arrXml["request"] as $item)
++					{
++						$title = (array_key_exists("@attributes", $item) ? $item["@attributes"]["name"] : $item["name"]);
++						return $title;
++					}
++				}
++			}
++		}
++		return "";
++	}
++
+ 	public function checkRegexesUptoDate($url, $rev, $nnid)
+ 	{
+ 		if ($url != "")
+@@ -2052,4 +2101,4 @@
+                             GROUP BY concat(cp.title, ' > ', category.title)
+                             ORDER BY COUNT(*) DESC");
+ 	}
+-}
+\ No newline at end of file
++}
